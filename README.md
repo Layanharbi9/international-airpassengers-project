@@ -122,7 +122,7 @@ Explore  →  Set the floor  →  Check what the floor misses  →  AutoGluon zo
 
 ## 3. Exploration — what the series looks like
 
-![Passengers grew sixfold, and the yearly swing grew with them](figures/01_series.png)
+![Air passengers almost quadrupled, and the yearly swing grew with them](figures/01_series.png)
 
 - **Trend:** steady growth from ~127k passengers/month (1949) to ~476k (1960).
 - **Seasonality:** every year peaks in July–August and dips in November.
