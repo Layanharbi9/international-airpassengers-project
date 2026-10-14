@@ -58,6 +58,68 @@ Explore  →  Set the floor  →  Check what the floor misses  →  AutoGluon zo
 
 ---
 
+## 2b. Techniques, models, metrics and tools — and why each one
+
+### Techniques
+
+| technique | what it does | why I used it |
+|---|---|---|
+| **Time plot** | draws the series over time | the first look: shows the growth, the yearly pattern, and that the swing grows with the level |
+| **STL decomposition** (Seasonal-Trend decomposition using Loess) | splits the series into trend + seasonal + remainder | to see which component does the work and whether the season is additive or multiplicative |
+| **Trend & seasonal strength** (textbook formulas, Hyndman & Athanasopoulos) | turns the decomposition into two numbers between 0 and 1 | to decide *objectively* what a model must contain — both came out ≈1, so it needs a trend **and** a season |
+| **ACF** (autocorrelation function) | measures how much the series resembles itself k months earlier | the spike at lag 12 confirms the yearly season; on residuals, it shows what pattern a model left behind |
+| **Residual analysis** | looks at the errors a model leaves (plot + ACF + histogram) | tells *what* a model missed (trend? momentum? season?) and therefore which model can fix it |
+| **Prediction intervals** (20/40/60/80/95%) | a range around the forecast instead of one number | a manager needs to know the uncertainty, not just the guess; the 80% band is the one checked for honesty |
+| **Rolling-origin cross-validation** (8 origins, h = 12, step = 12) | forecasts 12 months ahead from 8 different year-ends and scores each | one holdout year can be lucky; eight years give a ranking that can be trusted and show the spread of results |
+| **Leakage-free folds** | every fit, scaling denominator and driver value uses only data before the cutoff | otherwise the test "sees the future" and the scores are fake |
+| **Dynamic regression** (regression with ARIMA errors) | adds an outside variable (temperature) to the model | the extra-credit test of whether a real-world driver adds information beyond the calendar |
+| **Climatology for future regressors** | uses the average temperature per month from past years as the "future" value | real future temperature is unknown at forecast time — using it would be leakage |
+
+### Models
+
+| model | type | why it is in the project |
+|---|---|---|
+| **Seasonal Naive** — *the floor* | benchmark: next month = same month last year | the minimum any model must beat; the natural floor for monthly data with a yearly season |
+| **Naive** | benchmark: next month = this month | a second benchmark with no season — shows what ignoring seasonality costs |
+| **Naive with drift** (RWD) | benchmark: extends the average growth line | a benchmark that has trend but no season — the opposite gap to the floor |
+| **AutoARIMA** ⭐ | seasonal ARIMA, orders chosen automatically | handles trend (differencing), season (seasonal differencing) and momentum (AR terms) — exactly what the floor left behind. **Selected model: ARIMA(1,1,0)(0,1,0)[12]** |
+| **AutoETS** | exponential smoothing (level / trend / season states) | the other classic family for trended seasonal data; can model multiplicative seasonality |
+| **AutoTheta** | Theta method on the seasonally adjusted series | a strong, simple competition-winning method — a fair third candidate |
+| **WeightedEnsemble** (AutoGluon) | a weighted mix of the zoo's models | AutoGluon builds it automatically; tests whether mixing beats any single model |
+| **AutoARIMA + temperature** | dynamic regression | extra credit: does weather explain passenger numbers beyond the season? |
+
+### Metrics
+
+| metric | what it measures | why |
+|---|---|---|
+| **MASE** (Mean Absolute Scaled Error) | average error relative to the seasonal-naive error on the training data; < 1 beats the floor | the course's main point-accuracy metric; scale-free and directly comparable to the floor |
+| **RMSSE** (Root Mean Squared Scaled Error) | like MASE but squares errors, so big misses weigh more | checks the ranking is not hiding a few large misses |
+| **Scaled CRPS** (Continuous Ranked Probability Score) | the quality of the *whole* forecast distribution (all interval levels) | a forecast is a range, not a point; MASE alone is "half a result" |
+| **80% coverage** | share of actual months that fell inside the 80% band | the honesty check: an 80% band should hold the truth about 80% of the time |
+| **80% band width** | average size of the band | coverage alone can be gamed by a huge band; width shows the price paid for it |
+
+> There is no "accuracy %" in forecasting — accuracy is a classification
+> metric. Forecasts are judged by **how far off** they are (MASE, RMSSE),
+> how good the **range** is (CRPS) and whether the range is **honest** (coverage).
+
+### Libraries and tools
+
+| tool | used for | why this one |
+|---|---|---|
+| **Python 3.12** | everything | the course language |
+| **pandas / NumPy** | data handling and calculations | the standard data stack |
+| **statsmodels** | loading the dataset, STL decomposition, ACF | the reference implementation of classical time-series tools |
+| **statsforecast** (Nixtla) | fitting the floor and the shortlist, rolling-origin cross-validation with intervals | fast, consistent models with built-in cross-validation and prediction intervals — the course harness |
+| **utilsforecast** | MASE, RMSSE, scaled CRPS | the loss functions behind the course's scoring module |
+| **AutoGluon (timeseries)** | the model zoo + leaderboard | the course's framework: fits many models with one call, used here to *shortlist* |
+| **coursekit** (course package) | course plots and `score_cv` scoring | the academy's harness — guarantees each fold is scored only on data it was allowed to see |
+| **matplotlib / seaborn** | all charts | every chart is saved to `figures/` and reused in the report |
+| **Open-Meteo archive API** | historical monthly temperature (New York, JFK) | free, no key, ERA5 reanalysis going back to 1940 — cached as a CSV so the notebook does not depend on it |
+| **Jupyter / Google Colab** | running the notebook | the submission must run top to bottom on Colab |
+| **Git & GitHub** | version control and submission | the project is submitted as a fork |
+
+---
+
 ## 3. Exploration — what the series looks like
 
 ![Passengers grew sixfold, and the yearly swing grew with them](figures/01_series.png)
